@@ -3,6 +3,70 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime
+
+st.set_page_config(
+    page_title="Projet MES/ARDL – Tchad (1995–2022)",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    theme="dark"
+)
+
+# Custom styling
+st.markdown("""
+<style>
+    :root {
+        --primary-color: #1f77b4;
+        --secondary-color: #ff7f0e;
+        --success-color: #2ca02c;
+        --danger-color: #d62728;
+    }
+    
+    .metric-box {
+        background: linear-gradient(135deg, #1f77b4 0%, #1a5fa0 100%);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .success-box {
+        background: linear-gradient(135deg, #2ca02c 0%, #229620 100%);
+        padding: 15px;
+        border-radius: 8px;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .warning-box {
+        background: linear-gradient(135deg, #ff7f0e 0%, #e67e0a 100%);
+        padding: 15px;
+        border-radius: 8px;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .danger-box {
+        background: linear-gradient(135deg, #d62728 0%, #b81f21 100%);
+        padding: 15px;
+        border-radius: 8px;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+    
+    .section-header {
+        border-bottom: 3px solid #1f77b4;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 st.set_page_config(
     page_title="Projet MES/ARDL – Tchad (1995–2022)",
@@ -233,8 +297,14 @@ granger.loc[(granger["p-value"]>0.05) & (granger["p-value"]<=0.1), "Conclusion (
 # -----------------------------
 # App layout
 # -----------------------------
-st.title("📊 Dashboard – Projet ARDL/ECM + MES (3SLS) | Tchad 1995–2022")
-st.caption("Séries • KPIs • ARDL/ECM (court & long terme) • Pesaran Bounds • Granger • Système 3SLS • Scénarios.")
+st.markdown("""
+<div style="background: linear-gradient(135deg, #1f77b4 0%, #1a5fa0 100%); padding: 30px; border-radius: 10px; color: white; margin-bottom: 20px;">
+    <h1 style="color: white; margin: 0;">📊 Dashboard ARDL/ECM + MES (3SLS)</h1>
+    <p style="font-size: 1.2em; color: #e8f4f8; margin: 10px 0 0 0;">Modèle de Transferts de Fonds et Croissance Économique | Tchad 1995–2022</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.caption("🔍 Analyse complète : Séries • KPIs • ARDL/ECM • Pesaran Bounds • Causalité Granger • Système 3SLS • Scénarios dynamiques")
 
 tabs = st.tabs([
     "📁 Données",
@@ -250,14 +320,15 @@ tabs = st.tabs([
 # TAB Données
 # -----------------------------
 with tabs[0]:
-    st.subheader("Données")
+    st.markdown('<div class="section-header"><h2>📊 Gestion des Données</h2></div>', unsafe_allow_html=True)
+    
     if df is None:
-        st.warning("Téléverse un fichier Excel (ou place base.xlsx à côté de app.py).")
+        st.error("❌ Aucune données chargées. Téléverse un fichier Excel ou place base.xlsx à côté de app.py.")
     else:
         missing = [c for c in expected_cols if c not in df.columns]
         if missing:
-            st.error(f"Colonnes manquantes : {missing}")
-            st.info("Renomme les colonnes pour correspondre au script R : year, GROWTH, REM, TC, FDI, OPEN, CREDIT, INV, INF, MIGSTOCK, HOSTGDP.")
+            st.error(f"❌ Colonnes manquantes : {missing}")
+            st.info("📝 Renomme les colonnes : year, GROWTH, REM, TC, FDI, OPEN, CREDIT, INV, INF, MIGSTOCK, HOSTGDP.")
         else:
             df = df.sort_values("year").reset_index(drop=True).copy()
             df["logREM"] = safe_log(df["REM"])
@@ -267,17 +338,73 @@ with tabs[0]:
             df["logCREDIT"]= safe_log(df["CREDIT"])
             df["logINV"] = safe_log(df["INV"])
 
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Période", f"{int(df.year.min())}–{int(df.year.max())}")
-            c2.metric("Observations", df.shape[0])
-            c3.metric("Variables", df.shape[1])
-            c4.metric("Manquants", int(df.isna().sum().sum()))
+            # KPIs avec couleurs
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1:
+                st.metric("📅 Période", f"{int(df.year.min())}–{int(df.year.max())}", delta=f"{int(df.year.max()) - int(df.year.min())} ans")
+            with col2:
+                st.metric("📊 Observations", df.shape[0])
+            with col3:
+                st.metric("📈 Variables", df.shape[1])
+            with col4:
+                st.metric("🔲 Manquants", int(df.isna().sum().sum()), delta="0%" if int(df.isna().sum().sum()) == 0 else "⚠️")
+            with col5:
+                st.metric("✅ Complétude", f"{(1 - df.isna().sum().sum()/(df.shape[0]*df.shape[1]))*100:.1f}%")
 
-            st.markdown("### Aperçu")
-            st.dataframe(df.head(25), use_container_width=True)
-
-            st.markdown("### Statistiques descriptives")
-            st.dataframe(df[expected_cols].describe().T, use_container_width=True)
+            # Tabs pour données
+            st.markdown("---")
+            data_tabs = st.tabs(["📋 Aperçu", "📊 Statistiques", "📉 Distribution"])
+            
+            with data_tabs[0]:
+                st.subheader("Données brutes")
+                st.dataframe(df.head(25), use_container_width=True, height=500)
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.download_button(
+                        "⬇️ Télécharger en CSV",
+                        df.to_csv(index=False),
+                        "donnees_tchad.csv",
+                        "text/csv"
+                    )
+                with col2:
+                    st.download_button(
+                        "⬇️ Télécharger en Excel",
+                        to_excel_bytes({"Données": df}),
+                        "donnees_tchad.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+            
+            with data_tabs[1]:
+                st.subheader("Statistiques descriptives")
+                stats_df = df[expected_cols].describe().T
+                st.dataframe(stats_df, use_container_width=True)
+                
+                # Heatmap de corrélations
+                st.subheader("Matrice de corrélations")
+                corr = df[[c for c in expected_cols if c != 'year']].corr(numeric_only=True)
+                fig_corr = px.imshow(corr, color_continuous_scale="RdBu", zmin=-1, zmax=1, 
+                                     labels=dict(color="Corrélation"))
+                fig_corr.update_layout(height=600, title_text="Corrélations entre variables")
+                st.plotly_chart(fig_corr, use_container_width=True)
+            
+            with data_tabs[2]:
+                st.subheader("Distribution des variables")
+                var_select = st.selectbox("Sélectionner une variable", 
+                                         [c for c in expected_cols if c != 'year'], 
+                                         key="dist_var")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    fig_hist = px.histogram(df, x=var_select, nbins=15, 
+                                           title=f"Distribution - {var_select}",
+                                           color_discrete_sequence=['#1f77b4'])
+                    st.plotly_chart(fig_hist, use_container_width=True)
+                
+                with col2:
+                    fig_box = px.box(df, y=var_select, title=f"Box plot - {var_select}",
+                                    color_discrete_sequence=['#ff7f0e'])
+                    st.plotly_chart(fig_box, use_container_width=True)
 
 # -----------------------------
 # TAB Séries & KPIs
