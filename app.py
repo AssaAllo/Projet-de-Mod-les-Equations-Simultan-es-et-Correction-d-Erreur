@@ -9,8 +9,7 @@ from datetime import datetime
 st.set_page_config(
     page_title="Projet MES/ARDL – Tchad (1995–2022)",
     layout="wide",
-    initial_sidebar_state="expanded",
-    theme="dark"
+    initial_sidebar_state="expanded"
 )
 
 # Custom styling
