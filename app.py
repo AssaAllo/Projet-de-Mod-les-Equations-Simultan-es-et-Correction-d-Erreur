@@ -197,26 +197,18 @@ def create_coefficient_chart(df, title=""):
 
 st.sidebar.title("⚙️ Paramètres")
 default_path = "base.xlsx"
-use_default = st.sidebar.checkbox("Charger automatiquement base.xlsx", value=True)
-uploaded = st.sidebar.file_uploader("Ou téléverse ton fichier Excel", type=["xlsx"])
 
 @st.cache_data(show_spinner=False)
-def load_data_from_excel(file_like) -> pd.DataFrame:
-    return pd.read_excel(file_like)
+def load_data_from_excel(file_path: str) -> pd.DataFrame:
+    return pd.read_excel(file_path)
 
-df = None
-if uploaded is not None:
-    df = load_data_from_excel(uploaded)
-    st.sidebar.success("✅ Données chargées (upload).")
-elif use_default:
-    try:
-        df = load_data_from_excel(default_path)
-        st.sidebar.success("✅ Données chargées (base.xlsx).")
-    except Exception:
-        st.sidebar.warning("⚠️ base.xlsx introuvable.")
-        df = None
-else:
-    st.sidebar.info("📁 Téléverse un fichier.")
+# Auto-load data at app startup
+try:
+    df = load_data_from_excel(default_path)
+    st.sidebar.success("✅ Données chargées automatiquement.")
+except Exception as e:
+    st.sidebar.error(f"❌ Erreur lors du chargement: {str(e)}")
+    df = None
 
 expected_cols = ["year","GROWTH","REM","TC","FDI","OPEN","CREDIT","INV","INF","MIGSTOCK","HOSTGDP"]
 
