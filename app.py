@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 st.set_page_config(
-    page_title="Projet MES/ARDL – Tchad (1995–2022)",
+    page_title="Projet de Modèles à Equations Simultanées et à Correction d'Erreurs – Tchad (1995–2022)",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -105,6 +105,10 @@ def to_excel_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
 def format_results_table(df, title=""):
     """Format a results table with professional styling"""
     st.markdown(f'<div class="table-title">{title}</div>', unsafe_allow_html=True)
+    
+    # Handle if df is already a Styler object
+    if hasattr(df, 'data'):
+        df = df.data
     
     styled_df = df.style
     
@@ -307,8 +311,8 @@ granger = pd.DataFrame({
 
 st.markdown("""
 <div style="background: linear-gradient(135deg, #1f77b4 0%, #1a5fa0 100%); padding: 40px; border-radius: 10px; color: white; margin-bottom: 20px;">
-    <h1 style="color: white; margin: 0; font-size: 2.8em;">📊 Dashboard Professionnel ARDL/ECM</h1>
-    <h2 style="color: #e8f4f8; margin: 15px 0 0 0; font-weight: 400; font-size: 1.4em;">Modèle de Transferts de Fonds & Croissance | Tchad 1995–2022</h2>
+    <h1 style="color: white; margin: 0; font-size: 2.8em;">Modèles à Equations Simultanées et à Correction d'Erreurs</h1>
+    <h2 style="color: #e8f4f8; margin: 15px 0 0 0; font-weight: 400; font-size: 1.4em;">Tchad 1995–2022</h2>
 </div>
 """, unsafe_allow_html=True)
 
@@ -411,13 +415,13 @@ with tabs[2]:
         st.info("🟢 Vert = positif  |  🔴 Rouge = négatif  |  Intensité = magnitude")
     
     with ardl_tabs[1]:
-        format_results_table(long_run.style.format(precision=6), "Relation de Long Terme")
+        format_results_table(long_run, "Relation de Long Terme")
         create_coefficient_chart(long_run, "Effets à Long Terme")
         st.markdown("**Équilibre structurel** entre les variables")
     
     with ardl_tabs[2]:
         st.markdown(f'<div class="table-title">Dynamique Court Terme (ECM)</div>', unsafe_allow_html=True)
-        st.dataframe(ecm_short.style.format(precision=4), use_container_width=True)
+        format_results_table(ecm_short, "")
     
     with ardl_tabs[3]:
         st.dataframe(bounds_test, use_container_width=True)
@@ -428,18 +432,7 @@ with tabs[2]:
             st.success("✅ **F-stat > I(1) 5%** → Cointégration détectée")
     
     with ardl_tabs[4]:
-        def color_diag_pval(val):
-            try:
-                v = float(val)
-                if v > 0.05:
-                    return 'background-color: rgba(44, 160, 44, 0.3); font-weight: bold'
-                else:
-                    return 'background-color: rgba(214, 39, 40, 0.2)'
-            except:
-                return ''
-        
-        diag_styled = ardl_diag.style.applymap(color_diag_pval, subset=['p-value'])
-        st.dataframe(diag_styled, use_container_width=True)
+        format_results_table(ardl_diag, "Diagnostics des Résidus")
         st.success("✅ **Tous les diagnostics OK** - Résidus proches du bruit blanc")
 
 # ==================== TAB 3: GRANGER ====================
@@ -449,7 +442,7 @@ with tabs[3]:
     
     gr_styled = granger.copy()
     gr_styled['Status'] = gr_styled['p-value'].apply(lambda x: '✅ Causalité' if x < 0.05 else ('⚠️ Marginale' if x < 0.1 else '❌ Non-sig'))
-    st.dataframe(gr_styled, use_container_width=True)
+    format_results_table(gr_styled, "Causalité de Granger")
     
     sig5 = granger[granger['p-value']<=0.05]['Variable'].tolist()
     st.info(f"**Variables causales au seuil 5%**: {', '.join(sig5) if sig5 else 'Aucune'}")
